@@ -18,8 +18,8 @@ To achieve this, we fine-tune and upgrade the original SEDD pipeline for biologi
 ### Upgrades based on SEDD
 - **Domain-aware absorbing graph** — We weight the mask probability by **positional importance**. This enables the model to allocate more capacity to **structurally critical positions** during training, thereby enhancing the signal-to-noise ratio of scoring.
 - **Masked marginal scoring** (evaluation) — To score a sequence zero-shot, we randomly mask **15% of positions**, run a forward pass at low noise `σ ≈ 0`, and extract `log p` at masked positions. Averaged over `S=10` random masks and normalised against the wildtype score.
-- **Score entropy loss + equivalence regularisation** — Adds a consistency term to the original loss
-- **Grammar-guided sampling** — Increase syntax restrictions (Still considering)
+- **Score entropy loss + equivalence regularisation** — We augment the original score entropy objective with an **additional consistency regularization** term to stabilize training and improve representation alignment.
+- **Grammar-guided sampling** *(ongoing)* — We are exploring **stronger syntax-aware constraints** during sampling to improve validity, especially for molecular generation.
 
 ## Why Discrete Diffusion?
 
