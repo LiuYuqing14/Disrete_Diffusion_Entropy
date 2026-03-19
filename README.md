@@ -1,4 +1,4 @@
-# Discrete Diffusion for Biological Sequences: Reproducing and Extending SEDD
+# Bio-SEDD: Discrete Diffusion for Biological Sequences
 
 ## Brief Summary
 
@@ -62,3 +62,36 @@ This makes the generation process itself resemble a realistic **biological infer
 ### Improvements
 - Full set of **64 canonical 3-mers** from the DNA alphabet `{A, T, G, C}`; `N`-filtering is performed at the base level first, **before k-mer** conversion.
 - For DNA sequences, `t ∈ [0.3, 0.7]` contains the **richest learning signal** for genomic reconstruction. A **cosine noise schedule** allocates more effective **masking probability** in this region.
+
+## 2. ProteinGym
+
+### Overview
+
+```text
+proteinGym/
+├── protein_tokenizer.py   # Embedding: 25 × d_model
+├── protein_dataset.py     # ProteinGym dataset loaders
+├── finetune_protein.py    # Fine-tuning script
+├── evaluate_protein.py    # Zero-shot fitness evaluation
+└── configs/
+    └── protein.yaml       # Hydra-style config reference
+```
+
+### Results and Comparison
+
+
+| Model                                | Mean Spearman ρ | Note                                   |
+|--------------------------------------|-----------------|----------------------------------------|
+| SEDD-small (zero-shot, no fine-tune) | ~0.30–0.40*     | original SEDD; text token              |
+| Bio-SEDD lite (light)                | ~0.40–0.50      | only update embedding & output head    |
+| Bio-SEDD full (heavy)                | ~0.45–0.55      | update every weight                    |
+| ESM-1v                               | ~0.44           | benchmark by Meta using UniRef90       |
+| EVE                                  | ~0.47           | single encoder for each protein family |
+
+*purely transfer with no protein-specific training can still achieve a good result, showing the structural similarities between the pattern of text and that of proteins.
+
+
+### Improvements
+
+- Replaces both `model.vocab_embed`(embedding) and `model.output_layer`(head) with **randomly initialised matrices** sized for the protein vocabulary, and leave the **transformer backbone**. To address the issue of **limited data**, **transfer learning** is used to apply the attention patterns learned by pre-trained SEDD on text to proteins.
+- **Zero-shot scoring** is used as evaluation of model. Reuse the probability ratios calculated by the model in the loss function to **avoid redundant calculations**；**No fitness label** is needed for inference; it can be directly generalized to the new protein family.
