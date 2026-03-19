@@ -4,14 +4,22 @@ This project starts from reproducing the [**Score-Entropy Discrete Diffusion (SE
 
 To achieve this, we fine-tune and upgrade the original SEDD pipeline for biological token sequences, with a focus on improving domain adaptation, sequence quality, robustness to noisy or ambiguous tokens, and compatibility with real biomedical data distributions. The project aims to bridge general discrete diffusion modeling with practical biomedical generation tasks, turning SEDD into a more effective and extensible framework for biosequence modeling.
 
-## Project Target
+## Bio-SEDD
 
-This project aims to bridge recent advances in discrete diffusion modeling with biological sequence generation. Specifically, it seeks to:
+### Structure
 
-1. reproduce the original SEDD framework faithfully;
-2. extend the method to biological sequence datasets through fine-tuning and domain adaptation;
-3. analyze the suitability of discrete diffusion for modeling structured biological token distributions; and
-4. identify practical improvements that enhance generation fidelity, optimization stability, and biological relevance.
+<p align="center">
+  <img src="image_src/biosedd_pipeline.jpg" alt="Bio-SEDD pipeline" width="600"/>
+</p>
+<p align="center">
+  <sub>Training and Evaluation Pipeline for Bio-SEDD.</sub>
+</p>
+
+### Upgrades based on SEDD
+- **Domain-aware absorbing graph** — We weight the mask probability by **positional importance**. This enables the model to allocate more capacity to **structurally critical positions** during training, thereby enhancing the signal-to-noise ratio of scoring.
+- **Masked marginal scoring** (evaluation) — To score a sequence zero-shot, we randomly mask **15% of positions**, run a forward pass at low noise `σ ≈ 0`, and extract `log p` at masked positions. Averaged over `S=10` random masks and normalised against the wildtype score.
+- **Score entropy loss + equivalence regularisation** — Adds a consistency term to the original loss
+- **Grammar-guided sampling** — Increase syntax restrictions (Still considering)
 
 ## Why Discrete Diffusion?
 
@@ -28,12 +36,12 @@ conda env create -f environment.yml
 conda activate sedd
 ```
 
-## Training and Results
+## Training on three datasets
 
-## 1. Human Genome hg38
+## 1. Human Genome hg38 -- Genome Sequence
 
 <p align="center">
-  <img src="image_src/hg38_sedd_pipeline_v2.svg" alt="SEDD pipeline for hg38 sequence modeling" width="900"/>
+  <img src="image_src/hg38_sedd_pipeline_v2.svg" alt="SEDD pipeline for hg38 sequence modeling" width="600"/>
 </p>
 <p align="center">
   <sub>Training Pipeline for fine-tuning SEDD.</sub>
@@ -55,15 +63,15 @@ Full noise:         ? ? ? ? ? ? ? ?   <- completely unknown sequence
 This makes the generation process itself resemble a realistic **biological inference** process: starting from a **fully unknown** sequence, the model gradually fills in each position according to `contextual dependency`, `local motif structure`, and `evolutionary conservation`, eventually reconstructing a meaningful **DNA segment**.
 ### Result
 
-- **GC content:** `35% ± 5%`
-- **N-base ratio:** `7%`
-- **Sequence diversity:** partially repetitive
+- **GC content:** `35% ± 5%` - indicates stable learning of global nucleotide composition
+- **N-base ratio:** `7%` - ambiguity remains non-negligible
+- **Sequence diversity:** partially repetitive - long-range diversity is limited
 
 ### Improvements
 - Full set of **64 canonical 3-mers** from the DNA alphabet `{A, T, G, C}`; `N`-filtering is performed at the base level first, **before k-mer** conversion.
 - For DNA sequences, `t ∈ [0.3, 0.7]` contains the **richest learning signal** for genomic reconstruction. A **cosine noise schedule** allocates more effective **masking probability** in this region.
 
-## 2. ProteinGym
+## 2. ProteinGym -- Protein Sequence
 
 ### Overview
 
@@ -96,7 +104,7 @@ proteinGym/
 - Replaces both `model.vocab_embed`(embedding) and `model.output_layer`(head) with **randomly initialised matrices** sized for the protein vocabulary, and leave the **transformer backbone**. To address the issue of **limited data**, **transfer learning** is used to apply the attention patterns learned by pre-trained SEDD on text to proteins.
 - **Zero-shot scoring** is used as evaluation of model. Reuse the probability ratios calculated by the model in the loss function to **avoid redundant calculations**；**No fitness label** is needed for inference; it can be directly generalized to the new protein family.
 
-## 3.ChEMBL
+## 3.ChEMBL -- Molecular
 
 ### Overview
 

@@ -1,0 +1,61 @@
+# configs/chembl.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Bio-SEDD configuration for ChEMBL SMILES fine-tuning.
+# Drop into the `configs/` directory of the SEDD repository.
+# ─────────────────────────────────────────────────────────────────────────────
+
+data:
+  data_path: /data/chembl_33_filtered.csv   # CSV with 'canonical_smiles' column
+  max_length: 128          # tokens. Sequences OVER this are dropped (not truncated)
+  val_split: 0.05
+  filter_valid: true       # requires RDKit; drops unparseable SMILES
+  min_heavy_atoms: 5
+  max_heavy_atoms: 60
+  deduplicate: true
+  max_samples: null        # set e.g. 500000 for ablations
+  num_workers: 4
+
+model:
+  pretrained: louaaron/sedd-small
+  vocab_size: 94           # SMILES character vocabulary (see smiles_tokenizer.py)
+  mask_token_id: 1         # <MASK> is the absorbing state
+
+graph:
+  type: absorb             # absorb | uniform
+
+noise:
+  type: loglinear          # loglinear | geometric
+
+training:
+  mode: full               # full | lite
+  epochs: 30
+  batch_size: 64
+  accum_steps: 1
+  lr: 3.0e-4
+  weight_decay: 0.01
+  warmup_steps: 500
+  grad_clip: 1.0
+  save_every: 5
+  seed: 42
+
+output:
+  output_dir: ./runs/chembl_${graph.type}
+
+wandb:
+  enabled: false
+  project: bio-sedd-chembl
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Evaluation config
+# ─────────────────────────────────────────────────────────────────────────────
+evaluation:
+  # Generation mode
+  n_samples: 10000
+  seq_length: 80           # typical ChEMBL molecule token length
+  steps: 1000
+  gen_batch_size: 256
+
+  # Scoring mode
+  mask_fraction: 0.15
+  n_mask_samples: 10
+  score_batch_size: 64

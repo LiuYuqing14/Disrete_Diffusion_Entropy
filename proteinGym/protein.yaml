@@ -1,0 +1,68 @@
+# configs/protein.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Bio-SEDD configuration for ProteinGym fine-tuning.
+# Drop this file into the `configs/` directory of the SEDD repository.
+#
+# Usage:
+#   python finetune_protein.py \
+#       --data_path /data/proteingym/substitutions/ \
+#       --pretrained louaaron/sedd-small \
+#       --output_dir ./runs/proteingym_absorb
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Data ──────────────────────────────────────────────────────────────────────
+data:
+  data_path: /data/proteingym/substitutions/   # single CSV or directory
+  max_length: 512
+  val_split: 0.05
+  min_fitness: null                            # set e.g. 0.0 to keep pos. fitness only
+  include_wildtype: true
+  num_workers: 4
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  pretrained: louaaron/sedd-small   # or louaaron/sedd-medium
+  vocab_size: 25                     # protein alphabet (see protein_tokenizer.py)
+  mask_token_id: 1                   # <MASK> token used as absorbing state
+
+# ── Diffusion ─────────────────────────────────────────────────────────────────
+graph:
+  type: absorb           # absorb | uniform
+  # For absorb: the <MASK> token (id=1) is the absorbing state.
+  # For uniform: all tokens transition to each other uniformly.
+
+noise:
+  type: loglinear        # loglinear | geometric
+  # loglinear is the recommended schedule for discrete absorbing diffusion.
+
+# ── Training ──────────────────────────────────────────────────────────────────
+training:
+  mode: full             # full | lite  (lite = only embedding + head)
+  epochs: 20
+  batch_size: 16
+  accum_steps: 1         # increase for larger effective batch size
+  lr: 3.0e-4
+  weight_decay: 0.01
+  warmup_steps: 200
+  grad_clip: 1.0
+  save_every: 5          # save checkpoint every N epochs
+  seed: 42
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output:
+  output_dir: ./runs/proteingym_${graph.type}_${noise.type}
+
+# ── WandB (optional) ──────────────────────────────────────────────────────────
+wandb:
+  enabled: false
+  project: bio-sedd-protein
+  entity: null
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Evaluation config (used by evaluate_protein.py)
+# ─────────────────────────────────────────────────────────────────────────────
+evaluation:
+  score_method: masked_marginal   # masked_marginal | wildtype_marginal
+  mask_fraction: 0.15
+  n_samples: 10                  # Monte-Carlo samples per sequence
+  batch_size: 32
