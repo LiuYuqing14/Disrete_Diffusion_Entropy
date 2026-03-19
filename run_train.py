@@ -20,6 +20,7 @@ from model import SEDD
 from model.ema import ExponentialMovingAverage
 from transformers import GPT2TokenizerFast, GPT2LMHeadModel
 
+from human_genome_hg38.dataloader_hg38 import get_hg38_dataloaders
 
 torch.backends.cudnn.benchmark = True
 # torch.autograd.set_detect_anomaly(True)
@@ -121,7 +122,13 @@ def _run(rank, world_size, cfg):
     tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
 
     # Build data iterators
-    train_ds, eval_ds = data.get_dataloaders(cfg)
+    if config.data.name == "hg38":
+        train_loader, eval_loader = get_hg38_dataloaders(
+            token_path="data/hg38_tokens.npy",
+            batch_size=config.training.batch_size,
+        )
+    else:
+        train_ds, eval_ds = data.get_dataloaders(cfg)
 
     # mprint(f"Length of datasets: {len(train_ds)}, {len(eval_ds)}")
 

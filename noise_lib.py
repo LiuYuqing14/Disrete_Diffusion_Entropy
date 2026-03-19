@@ -71,3 +71,35 @@ class LogLinearNoise(Noise, nn.Module):
     def total_noise(self, t):
         return -torch.log1p(-(1 - self.eps) * t)
 
+
+class CosineNoise(nn.Module):
+    """
+    Cosine absorbing-diffusion noise schedule.
+    Replaces LogLinear in noise_lib.py.
+
+    σ(t)  = σ_max · (1 - cos(π·t / 2))
+    σ'(t) = σ_max · (π/2) · sin(π·t / 2)
+
+    At t=0: σ=0      (no masking)
+    At t=1: σ=σ_max  (fully masked)
+    Derivative peaks at t=0.5 → more gradient signal in mid-range.
+    """
+
+    def __init__(self, cfg):
+        super().__init__()
+        self.sigma_min = cfg.noise.sigma_min  # e.g. 1e-4
+        self.sigma_max = cfg.noise.sigma_max  # e.g. 1.0
+
+    def sigma(self, t: torch.Tensor) -> torch.Tensor:
+        """σ(t): scalar or batch tensor t ∈ [0, 1] → masking intensity"""
+        t = t.clamp(0.0, 1.0)
+        return self.sigma_max * (1.0 - torch.cos(torch.pi * t / 2.0))
+
+    def dsigma(self, t: torch.Tensor) -> torch.Tensor:
+        """dσ/dt: used in the score-entropy loss weighting"""
+        t = t.clamp(0.0, 1.0)
+        return self.sigma_max * (torch.pi / 2.0) * torch.sin(torch.pi * t / 2.0)
+
+    def forward(self, t: torch.Tensor):
+        """Returns (sigma, dsigma) — matches SEDD Noise base class interface"""
+        return self.sigma(t), self.dsigma(t)

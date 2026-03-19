@@ -1,0 +1,32 @@
+ngpus: 4
+
+data:
+  name: hg38_3mer
+  token_file: data/hg38_3mer_tokens.npy
+  vocab_file:  data/kmer_vocab.json
+  seq_len: 1024           # tokens per sample (each token = one 3-mer = 3 bases)
+  vocab_size: 65          # 64 valid 3-mers + 1 N-token
+
+noise:
+  type: cosine            # smoother mid-t coverage vs loglinear
+  sigma_min: 1e-4         # same as SEDD default
+  sigma_max: 1.0
+
+graph:
+  type: absorb            # absorbing/mask diffusion — unchanged
+
+model: small              # use 'medium' if you have a GPU with ≥24 GB VRAM
+model.scale_by_sigma: true
+
+training:
+  batch_size: 64          # reduced from 128: each token now encodes 3 bases
+                          # so effective base coverage is identical
+  accum: 2                # gradient accumulation to recover effective batch=128
+  n_iters: 500000
+  lr: 3e-4
+  warmup: 10000
+  weight_decay: 0.01
+  ema: 0.9999
+  log_freq: 100
+  sample_freq: 10000
+  checkpoint_freq: 10000

@@ -6,7 +6,7 @@ from model.ema import ExponentialMovingAverage
 import graph_lib
 import noise_lib
 
-from omegaconf import OmegaConf
+# from omegaconf import OmegaConf
 
 def load_model_hf(dir, device):
     score_model = SEDD.from_pretrained(dir).to(device)
